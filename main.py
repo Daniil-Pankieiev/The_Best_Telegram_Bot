@@ -173,7 +173,27 @@ async def process_photo(message: types.Message, state: FSMContext):
         await message.reply("The photo file was not found. Please try again.")
 
 
+async def finalize_checklist(message: types.Message, state: FSMContext):
+    """
+        Finalizes the checklist process and performs any necessary cleanup.
 
+        Args:
+            message (types.Message): The incoming message object.
+            state (FSMContext): The current state of the conversation.
+        """
+    await message.answer("Checklist completed. Thank you for your input.")
+    user_data = await state.get_data()
+    report = generate_task_for_ai(user_data)
+    photos = {f"check list {i + 1}": user_data.get(f"photo_entry_{i + 1}")
+              for i in range(CHECK_LISTS)
+              if f"photo_entry_{i + 1}" in user_data}
+    finish_report = await analyze_task(report, photos=photos)
+    if finish_report:
+        await message.answer("Answer: " + finish_report)
+    else:
+        await message.answer("The report could not be parsed.")
+    await state.finish()
+    await list_locations(message)
 
 
 if __name__ == '__main__':
