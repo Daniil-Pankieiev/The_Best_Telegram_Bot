@@ -26,8 +26,6 @@ includes uploading photos and adding comments. After completing the checklist, t
 
 ### Installation
 
-Для запуску проекту виконайте наступні кроки:
-
 1. Clone the repository:
 
 ```bash
