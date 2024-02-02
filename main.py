@@ -135,3 +135,46 @@ async def process_comment(message: types.Message, state: FSMContext):
         reply_markup=keyboard)
 
 
+@dp.message_handler(commands=["Skip"], state=UserChecklist.photo_upload)
+async def skip_photo(message: types.Message, state: FSMContext):
+    """
+       Skips the photo upload and continues with the checklist.
+
+       Args:
+           message (types.Message): The incoming message object.
+           state (FSMContext): The current state of the conversation.
+       """
+    await UserChecklist.checklist_entry.set()
+    await message.answer("Skipping photo upload. Continuing with the checklist.")
+    await process_checklist_entry(message, state, (await state.get_data()).get("current_entry", 1) + 1)
+
+
+@dp.message_handler(content_types=["photo"], state=UserChecklist.photo_upload)
+async def process_photo(message: types.Message, state: FSMContext):
+    """
+        Processes the uploaded photo and updates the state.
+
+        Args:
+            message (types.Message): The incoming message object.
+            state (FSMContext): The current state of the conversation.
+        """
+    try:
+        photo_file = await bot.get_file(message.photo[-1].file_id)
+        photo_url = f"https://api.telegram.org/file/bot{os.getenv('BOT_TOKEN')}/{photo_file.file_path}"
+        user_data = await state.get_data()
+        entry_number = user_data["current_entry"]
+        await state.update_data({f"photo_entry_{entry_number}": photo_url})
+        await UserChecklist.checklist_entry.set()
+        await message.answer("Photo uploaded successfully. Continuing with the checklist.")
+        await process_checklist_entry(message, state, entry_number + 1)
+    except TelegramAPIError:
+        await message.reply("There was an issue with the Telegram API. Please try again.")
+    except FileNotFoundError:
+        await message.reply("The photo file was not found. Please try again.")
+
+
+
+
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
